@@ -9,6 +9,7 @@ import requests
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from bson import ObjectId
+import hashlib
 
 app = Flask(__name__)
 CORS(app)
@@ -112,6 +113,24 @@ def init_database():
                 database.create_collection('alerts')
                 print("✓ Created 'alerts' collection")
             
+            # Create teachers collection if it doesn't exist
+            if 'teachers' not in collections:
+                database.create_collection('teachers')
+                print("✓ Created 'teachers' collection")
+                
+                # Create sample teachers with hashed passwords
+                teachers = [
+                    {"username": "admin", "password": hashlib.sha256("admin123".encode()).hexdigest(), "role": "admin"},
+                    {"username": "teacher1", "password": hashlib.sha256("teacher123".encode()).hexdigest(), "role": "teacher"},
+                    {"username": "proctor", "password": hashlib.sha256("proctor123".encode()).hexdigest(), "role": "proctor"}
+                ]
+                
+                try:
+                    database.teachers.insert_many(teachers)
+                    print("✓ Inserted sample teachers (admin/admin123, teacher1/teacher123, proctor/proctor123)")
+                except Exception as e:
+                    print(f"Sample teachers may already exist: {e}")
+            
             # Create indexes for better performance
             try:
                 database.students.create_index("roll_number", unique=True)
@@ -125,9 +144,16 @@ def init_database():
             except Exception as e:
                 print(f"Index may already exist: {e}")
             
+            try:
+                database.teachers.create_index("username", unique=True)
+                print("✓ Created index on teachers.username")
+            except Exception as e:
+                print(f"Index may already exist: {e}")
+            
             # Get collection stats
             student_count = database.students.count_documents({})
             alerts_count = database.alerts.count_documents({})
+            teacher_count = database.teachers.count_documents({})
             
             print(f"\n{'='*50}")
             print(f"MongoDB Database Status:")
@@ -135,6 +161,7 @@ def init_database():
             print(f"Database: {DB_NAME}")
             print(f"Students collection: {student_count} documents")
             print(f"Alerts collection: {alerts_count} documents")
+            print(f"Teachers collection: {teacher_count} documents")
             print(f"{'='*50}\n")
             
             return True
@@ -256,6 +283,44 @@ def login():
                 return jsonify({"message": "Invalid credentials"})
         except Exception as e:
             print(f"Database login error: {e}")
+            return jsonify({"message": "Database error occurred"}), 500
+    else:
+        return jsonify({"message": "Database connection failed"}), 500
+
+@app.route('/teacher/login', methods=['POST'])
+def teacher_login():
+    data = request.get_json()
+    if not data:
+        return jsonify({"message": "No JSON data received"}), 400
+    
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({"message": "Username and password are required"}), 400
+    
+    database = get_db_connection()
+    if database is not None:
+        try:
+            # Hash the provided password
+            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+            
+            # Query MongoDB for matching teacher
+            teacher = database.teachers.find_one({
+                "username": username,
+                "password": hashed_password
+            })
+            
+            if teacher:
+                return jsonify({
+                    "message": "Login successful", 
+                    "username": username,
+                    "role": teacher.get("role", "teacher")
+                })
+            else:
+                return jsonify({"message": "Invalid credentials"}), 401
+        except Exception as e:
+            print(f"Database teacher login error: {e}")
             return jsonify({"message": "Database error occurred"}), 500
     else:
         return jsonify({"message": "Database connection failed"}), 500

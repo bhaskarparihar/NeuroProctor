@@ -28,6 +28,14 @@
       "react-app/jest"
     ]
   },
+  "jest": {
+    "testMatch": [
+      "<rootDir>/../testing/frontend/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/../testing/frontend/setupTests.js"
+    ]
+  },
   "browserslist": {
     "production": [
       ">0.2%",

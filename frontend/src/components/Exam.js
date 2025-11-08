@@ -719,12 +719,14 @@ export default function Exam() {
             
             {registerError && (
               <div style={{
-                backgroundColor: '#f8d7da',
-                color: '#721c24',
+                backgroundColor: '#ff4444',
+                color: '#ffffff',
                 padding: '15px',
                 borderRadius: '10px',
                 marginBottom: '20px',
-                border: '1px solid #f5c6cb'
+                border: '2px solid #cc0000',
+                boxShadow: '0 4px 12px rgba(255, 68, 68, 0.3)',
+                fontWeight: 'bold'
               }}>
                 ⚠️ {registerError}
               </div>
@@ -973,21 +975,27 @@ export default function Exam() {
                 }}>
                   Percentage: <span style={{ fontWeight: 'bold', color: '#1976d2' }}>{Math.round((score / questions.length) * 100)}%</span>
                 </div>
-                <button 
-                  onClick={() => navigate('/proctor-dashboard')}
-                  style={{
-                    backgroundColor: '#6f42c1',
-                    color: 'white',
-                    border: 'none',
-                    padding: '15px 30px',
-                    borderRadius: '10px',
-                    fontSize: '1.2rem',
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  📊 Go to Proctor Dashboard
-                </button>
+                <div style={{
+                  backgroundColor: '#e3f2fd',
+                  padding: '20px',
+                  borderRadius: '10px',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ 
+                    fontSize: '1.1rem',
+                    color: '#1976d2',
+                    margin: '0'
+                  }}>
+                    ✅ Your exam has been submitted successfully!
+                  </p>
+                  <p style={{ 
+                    fontSize: '0.95rem',
+                    color: '#666',
+                    marginTop: '10px'
+                  }}>
+                    You may now close this window.
+                  </p>
+                </div>
               </div>
             )}
           </div>

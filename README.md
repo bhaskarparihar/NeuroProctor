@@ -1,6 +1,6 @@
 # 🕵️‍♂️ AI Proctor
 
-A modern, AI-powered online exam proctoring system with real-time object detection, proctor dashboard, and anti-cheating measures.
+A modern, AI-powered online exam proctoring system with real-time object detection, head pose tracking, audio anomaly detection, MongoDB integration, and comprehensive testing.
 
 ---
 
@@ -10,136 +10,329 @@ A modern, AI-powered online exam proctoring system with real-time object detecti
 - [🛠 Tech Stack](#-tech-stack)
 - [⚙ Installation](#-installation)
 - [🔧 Configuration](#-configuration)
+- [🧪 Testing](#-testing)
 - [📁 Project Structure](#-project-structure)
 - [📚 Usage Guide](#-usage-guide)
-- [🚀 Deployment](#-deployment)
+- [� Authentication](#-authentication)
 - [📄 License](#-license)
-- [🙏 Acknowledgments](#-acknowledgments)
-- [📞 Support](#-support)
+- [� Documentation](#-documentation)
 
 ---
 
 ## 🚀 Features
 
-- 👤 **User Authentication** (Student login with roll number)
-- 📝 **Online Exam Interface** (MCQs, timer, auto-submit)
-- 🖥 **Fullscreen Enforcement** (Auto-submit on exit)
-- 🎥 **Webcam Proctoring** (Face registration, live face verification)
-- 🤳 **Object Detection** (Detects phones, laptops, etc. and auto-submits)
-- 📊 **Proctor Dashboard** (Live alerts, analytics, and charts)
-- 🛡 **Anti-cheating Measures** (Logs, auto-submission, and alerts)
+### Student Features
+- 👤 **User Authentication** - Roll number-based student login
+- 📝 **Online Exam Interface** - MCQs with timer and auto-submit
+- 🖥 **Fullscreen Enforcement** - Auto-submit on fullscreen exit
+- 🎥 **Webcam Proctoring** - Face registration and live verification
+- 🔍 **Head Pose Tracking** - Detects looking away (left/right/up/down)
+- 🤳 **Object Detection** - Detects phones, laptops, and triggers alerts
+- 🎤 **Audio Monitoring** - Detects speech and suspicious sounds
+- 🔒 **Keyboard Restrictions** - Limits keys to prevent cheating
+
+### Teacher/Proctor Features
+- � **Secure Teacher Login** - MongoDB-based authentication with hashed passwords
+- 📊 **Real-time Dashboard** - Live monitoring of all exam sessions
+- 📈 **Analytics & Charts** - Visual representation of alerts and statistics
+- ⚠️ **Alert Management** - View and filter all cheating alerts
+- � **Student Monitoring** - Track individual student behavior
+
+### System Features
+- 🧪 **Comprehensive Testing** - 20+ backend tests, 19+ frontend tests
+- 🗄️ **MongoDB Integration** - Scalable database for students, teachers, and alerts
+- 🛡 **Security** - Password hashing, protected routes, session management
+- 📱 **Responsive Design** - Works on various screen sizes
+- 📝 **Detailed Logging** - All alerts stored with timestamps and metadata
 
 ---
 
 ## 🛠 Tech Stack
 
-- **Frontend:** React, Bootstrap, React Webcam, Recharts
-- **Backend:** Flask, Flask-CORS, OpenCV, YOLOv5 (PyTorch)
-- **AI/ML:** YOLOv5 (object detection), OpenCV
-- **Database:** PostgreSQL
-- **Other:** Python, JavaScript, HTML/CSS
+### Frontend
+- **Framework:** React 19.1.0
+- **Routing:** React Router DOM 7.6.3
+- **UI:** Bootstrap 5.3.7
+- **Webcam:** React Webcam 7.2.0
+- **Charts:** Recharts 3.1.0
+- **Testing:** Jest, React Testing Library
+
+### Backend
+- **Framework:** Flask 3.1.1
+- **CORS:** Flask-CORS 6.0.1
+- **Computer Vision:** OpenCV 4.8.1.78, MediaPipe
+- **Object Detection:** Ultralytics YOLOv5
+- **Database:** MongoDB Atlas (PyMongo 4.6.1)
+- **Testing:** pytest 7.4.3, pytest-flask 1.3.0
+
+### AI/ML Models
+- **YOLOv5n** - Object detection (phones, laptops)
+- **MediaPipe Face Mesh** - Head pose estimation
+- **MediaPipe Face Detection** - Face registration/verification
 
 ---
 
 ## ⚙ Installation
 
-1. **Clone the repository:**
-   ```sh
-   git clone https://github.com/kbansal1111/Ai-Proctor.git
-   cd Ai-proctor
-   ```
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- MongoDB Atlas account (or local MongoDB)
 
-2. **Frontend Setup:**
-   ```sh
-   cd ai-proctor
-   npm install
-   ```
+### 1. Clone the Repository
+```bash
+git clone https://github.com/kbansal1111/NeuroProctor.git
+cd NeuroProctor
+```
 
-3. **Backend Setup:**
-   ```sh
-   cd backend
-   python -m venv venv
-   venv/Scripts/activate  # On Windows
-   # or
-   source venv/bin/activate  # On Mac/Linux
+### 2. Backend Setup
+```bash
+cd backend
 
-   pip install -r requirements.txt
-   ```
+# Create virtual environment
+python -m venv ../.venv
+
+# Activate virtual environment
+# On Windows:
+..\.venv\Scripts\activate
+# On Mac/Linux:
+source ../.venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 3. Frontend Setup
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+```
+
+### 4. Configure MongoDB
+Update the MongoDB URI in `backend/app.py`:
+```python
+MONGO_URI = "your_mongodb_connection_string"
+```
+
+Or use environment variables (recommended for production).
 
 ---
 
 ## 🔧 Configuration
 
-- **Frontend:**  
-  - Update API URLs in React to point to your deployed backend.
-- **Backend:**  
-  - YOLOv5 model weights (`yolov5m.pt`) are downloaded from Google Drive on first run.
-  - Set CORS as needed for your deployment.
-  - Configure PostgreSQL connection in `app.py` or via environment variables.
+### Backend Configuration
+- **MongoDB URI:** Update in `backend/app.py` line 15
+- **Port:** Default 5000 (configurable in `app.py`)
+- **YOLOv5 Model:** Auto-downloaded on first run (~5.3MB)
+- **CORS:** Configured for localhost:3000 (update for production)
+
+### Frontend Configuration
+- **API URL:** Default `http://localhost:5000` (update in components for production)
+- **Port:** Default 3000 (configurable in package.json)
+
+---
+
+## 🧪 Testing
+
+### Backend Testing
+
+Run all backend tests:
+```bash
+cd testing/backend
+pytest
+```
+
+Run with coverage:
+```bash
+pytest --cov=app --cov-report=html
+```
+
+Run specific test files:
+```bash
+pytest test_auth.py      # Authentication tests
+pytest test_api.py        # API endpoint tests
+pytest test_detection.py  # Detection system tests
+```
+
+**Test Results:** ✅ 20/20 tests passing
+
+### Frontend Testing
+
+Run frontend tests:
+```bash
+cd frontend
+npm test
+```
+
+Run with coverage:
+```bash
+npm test -- --coverage --watchAll=false
+```
+
+### Documentation
+- **Comprehensive Guide:** See [TESTING.md](TESTING.md)
+- **Quick Reference:** See [QUICK_TEST_GUIDE.md](QUICK_TEST_GUIDE.md)
+- **Implementation Details:** See [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)
 
 ---
 
 ## 📁 Project Structure
 
 ```
-ai-proctor/
-├── ai-proctor/
+NeuroProctor/
+├── backend/
+│   ├── app.py                    # Flask application (MongoDB integrated)
+│   ├── requirements.txt          # Python dependencies
+│   ├── yolov5n.pt               # YOLOv5 model (auto-downloaded)
+│   └── yolov5nu.pt              # YOLOv5 model variant
+│
+├── frontend/
 │   ├── public/
 │   │   └── index.html
 │   ├── src/
-│   │   ├── App.css
-│   │   ├── App.js
-│   │   ├── index.js
 │   │   ├── components/
-│   │   │   ├── Exam.js
-│   │   │   ├── Instruction.js
-│   │   │   ├── Login.js
-│   │   │   └── NotFound.js
-│   │   └── pages/
-│   │       └── ProctorDashboard.js
-│   ├── package.json
-│   └── ...
-├── backend/
-│   ├── app.py
-│   ├── requirements.txt
-│   └── (yolov5m.pt downloaded at runtime)
-├── .gitignore
-└── README.md
+│   │   │   ├── Exam.js          # Exam interface
+│   │   │   ├── Instruction.js   # Pre-exam instructions
+│   │   │   ├── Login.js         # Student login (with teacher link)
+│   │   │   ├── NotFound.js
+│   │   │   ├── ProtectedRoute.js
+│   │   │   └── TeacherProtectedRoute.js
+│   │   ├── pages/
+│   │   │   ├── ProctorDashboard.js   # Teacher dashboard
+│   │   │   └── TeacherLogin.js        # Teacher authentication
+│   │   ├── utils/
+│   │   │   └── keyboardRestriction.js
+│   │   ├── App.js
+│   │   └── index.js
+│   └── package.json
+│
+├── testing/                     # Centralized testing folder
+│   ├── backend/                 # Backend tests
+│   │   ├── __init__.py
+│   │   ├── conftest.py          # Pytest fixtures
+│   │   ├── pytest.ini           # Pytest configuration
+│   │   ├── test_auth.py         # Authentication tests
+│   │   ├── test_api.py          # API tests
+│   │   └── test_detection.py    # Detection tests
+│   └── frontend/                # Frontend tests
+│       ├── setupTests.js        # Jest configuration
+│       ├── Login.test.js
+│       ├── TeacherLogin.test.js
+│       ├── Exam.test.js
+│       └── ProctorDashboard.test.js
+│
+├── TESTING.md                   # Comprehensive testing guide
+├── QUICK_TEST_GUIDE.md         # Quick test reference
+├── IMPLEMENTATION_SUMMARY.md    # Implementation details
+├── FEATURES.md                  # Feature documentation
+├── README.md                    # This file
+└── LICENSE
 ```
 
 ---
 
 ## 📚 Usage Guide
 
-1. **Start the backend:**
-   ```sh
+### Starting the Application
+
+1. **Start Backend:**
+   ```bash
    cd backend
-   venv/Scripts/activate  # or source venv/bin/activate
+   # Activate virtual environment first
    python app.py
    ```
+   Backend runs on `http://localhost:5000`
 
-2. **Start the frontend:**
-   ```sh
-   cd ai-proctor
+2. **Start Frontend:**
+   ```bash
+   cd frontend
    npm start
    ```
+   Frontend runs on `http://localhost:3000`
 
-3. **Workflow:**
-   - Student logs in with roll number.
-   - Reads instructions and acknowledges.
-   - Registers face before exam starts.
-   - Exam runs in fullscreen; webcam monitors face and objects.
-   - Alerts and logs are sent to the proctor dashboard.
-   - Proctor can view live analytics and logs.
+### Student Workflow
+
+1. **Login** - Navigate to `http://localhost:3000`
+   - Enter username, roll number, and password
+   - Click "Login to Exam"
+
+2. **Instructions** - Read exam rules and click "I Agree & Proceed"
+
+3. **Face Registration** - Webcam captures face for verification
+
+4. **Exam** - Take exam with AI monitoring:
+   - Webcam tracks head movements
+   - Detects forbidden objects (phones, laptops)
+   - Monitors audio for speech
+   - Answers auto-saved
+   - Auto-submit on suspicious activity
+
+5. **Results** - View score and percentage
+
+### Teacher Workflow
+
+1. **Login** - Click "Teacher/Proctor Login" on student login page
+   - Use teacher credentials (see Authentication section)
+
+2. **Dashboard** - Monitor all students:
+   - View real-time alerts
+   - See alert statistics
+   - Filter by student or alert type
+   - View charts and analytics
 
 ---
 
-## 🚀 Deployment
+## � Authentication
 
-- **Frontend:** Deploy as a static site (e.g., Render Static Site).
-- **Backend:** Deploy as a Python web service (e.g., Render Web Service).
-- **Database:** Use Render PostgreSQL or your own PostgreSQL instance.
-- **Environment Variables:** Set database connection strings and API URLs as needed.
+### Teacher Accounts (MongoDB)
+Default teacher accounts (created automatically):
+
+| Username  | Password     | Role    |
+|-----------|--------------|---------|
+| admin     | admin123     | admin   |
+| teacher1  | teacher123   | teacher |
+| proctor   | proctor123   | proctor |
+
+**Security:** Passwords are hashed with SHA-256 before storage
+
+### Student Test Account
+
+| Field       | Value         |
+|-------------|---------------|
+| Username    | test_student  |
+| Roll Number | 12345         |
+| Password    | password123   |
+
+### Adding New Users
+
+**Teachers:** Insert directly into MongoDB `teachers` collection:
+```javascript
+db.teachers.insertOne({
+  username: "newteacher",
+  password: hashlib.sha256("password").hexdigest(),  // Hash the password
+  role: "teacher"
+})
+```
+
+**Students:** Insert into `students` collection:
+```javascript
+db.students.insertOne({
+  username: "student_name",
+  roll_number: "ROLL123",
+  password: "password"  // Consider hashing for production
+})
+```
+
+---
+
+## 📄 Documentation
+
+- **[FEATURES.md](FEATURES.md)** - Complete feature list and API endpoints
+- **[TESTING.md](TESTING.md)** - Comprehensive testing documentation
+- **[QUICK_TEST_GUIDE.md](QUICK_TEST_GUIDE.md)** - Quick testing reference
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Implementation details and changes
 
 ---
 
@@ -151,14 +344,21 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 🙏 Acknowledgments
 
-- [YOLOv5 by Ultralytics](https://github.com/ultralytics/yolov5)
-- [React](https://reactjs.org/)
-- [Bootstrap](https://getbootstrap.com/)
-- [Recharts](https://recharts.org/)
-- Open source contributors and the AI/ML community
+- [YOLOv5 by Ultralytics](https://github.com/ultralytics/yolov5) - Object detection
+- [MediaPipe](https://google.github.io/mediapipe/) - Face mesh and detection
+- [React](https://reactjs.org/) - Frontend framework
+- [Flask](https://flask.palletsprojects.com/) - Backend framework
+- [MongoDB](https://www.mongodb.com/) - Database
+- Open source community and contributors
 
 ---
 
 ## 📞 Support
 
-For questions, issues, or feature requests, please open an issue on [GitHub](https://github.com/<your-username>/<your-repo>/issues) or contact [your-email@example.com].
+- **Issues:** [GitHub Issues](https://github.com/kbansal1111/NeuroProctor/issues)
+- **Repository:** [github.com/kbansal1111/NeuroProctor](https://github.com/kbansal1111/NeuroProctor)
+
+---
+
+**Last Updated:** November 2025  
+**Version:** 2.0 (with MongoDB integration and comprehensive testing)

@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function Login() {
+export default function TeacherLogin() {
     const [username, setUsername] = useState("");
-    const [rollNumber, setRollNumber] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -13,8 +12,9 @@ export default function Login() {
         e.preventDefault();
         setError("");
         setIsLoading(true);
-        const loginData = { username, rollNumber, password };
-        fetch("http://localhost:5000/login", {
+        
+        const loginData = { username, password };
+        fetch("http://localhost:5000/teacher/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(loginData)
@@ -23,10 +23,11 @@ export default function Login() {
         .then(data => {
             setIsLoading(false);
             if (data.message === "Login successful") {
-                localStorage.setItem("rollNumber", rollNumber);
-                navigate("/instruction");
+                localStorage.setItem("teacherLoggedIn", "true");
+                localStorage.setItem("teacherUsername", username);
+                navigate("/proctor-dashboard");
             } else {
-                setError("Invalid Credentials");
+                setError("Invalid teacher credentials");
             }
         })
         .catch(err => {
@@ -39,7 +40,7 @@ export default function Login() {
     return (
         <div style={{
             minHeight: "100vh",
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -55,7 +56,6 @@ export default function Login() {
                 position: "relative",
                 overflow: "hidden"
             }}>
-                {/* Background Pattern */}
                 <div style={{
                     position: "absolute",
                     top: "-50px",
@@ -63,24 +63,23 @@ export default function Login() {
                     width: "100px",
                     height: "100px",
                     borderRadius: "50%",
-                    background: "linear-gradient(45deg, #667eea, #764ba2)",
+                    background: "linear-gradient(45deg, #f093fb, #f5576c)",
                     opacity: "0.1"
                 }}></div>
                 
-                {/* Header */}
                 <div style={{ textAlign: "center", marginBottom: "30px" }}>
                     <div style={{
                         width: "80px",
                         height: "80px",
                         borderRadius: "50%",
-                        background: "linear-gradient(135deg, #667eea, #764ba2)",
+                        background: "linear-gradient(135deg, #f093fb, #f5576c)",
                         margin: "0 auto 20px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        boxShadow: "0 10px 20px rgba(102, 126, 234, 0.3)"
+                        boxShadow: "0 10px 20px rgba(245, 87, 108, 0.3)"
                     }}>
-                        <span style={{ fontSize: "2rem", color: "white" }}>🎓</span>
+                        <span style={{ fontSize: "2rem", color: "white" }}>👨‍🏫</span>
                     </div>
                     <h1 style={{
                         color: "#2c3e50",
@@ -88,18 +87,17 @@ export default function Login() {
                         fontWeight: "bold",
                         margin: "0 0 10px 0"
                     }}>
-                        AI Proctor Login
+                        Teacher Login
                     </h1>
                     <p style={{
                         color: "#7f8c8d",
                         fontSize: "1rem",
                         margin: "0"
                     }}>
-                        Secure student authentication system
+                        Access Proctor Dashboard
                     </p>
                 </div>
 
-                {/* Form */}
                 <form onSubmit={handleSubmit}>
                     {error && (
                         <div style={{
@@ -126,13 +124,14 @@ export default function Login() {
                             fontWeight: "600",
                             fontSize: "0.9rem"
                         }}>
-                            👤 Username
+                            👤 Teacher Username
                         </label>
                         <input
                             type="text"
                             placeholder="Enter your username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            required
                             style={{
                                 width: "100%",
                                 padding: "15px",
@@ -142,36 +141,7 @@ export default function Login() {
                                 transition: "border-color 0.3s ease",
                                 boxSizing: "border-box"
                             }}
-                            onFocus={(e) => e.target.style.borderColor = "#667eea"}
-                            onBlur={(e) => e.target.style.borderColor = "#e9ecef"}
-                        />
-                    </div>
-
-                    <div style={{ marginBottom: "20px" }}>
-                        <label style={{
-                            display: "block",
-                            marginBottom: "8px",
-                            color: "#2c3e50",
-                            fontWeight: "600",
-                            fontSize: "0.9rem"
-                        }}>
-                            🆔 Roll Number
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Enter your roll number"
-                            value={rollNumber}
-                            onChange={(e) => setRollNumber(e.target.value)}
-                            style={{
-                                width: "100%",
-                                padding: "15px",
-                                border: "2px solid #e9ecef",
-                                borderRadius: "10px",
-                                fontSize: "1rem",
-                                transition: "border-color 0.3s ease",
-                                boxSizing: "border-box"
-                            }}
-                            onFocus={(e) => e.target.style.borderColor = "#667eea"}
+                            onFocus={(e) => e.target.style.borderColor = "#f5576c"}
                             onBlur={(e) => e.target.style.borderColor = "#e9ecef"}
                         />
                     </div>
@@ -191,6 +161,7 @@ export default function Login() {
                             placeholder="Enter your password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            required
                             style={{
                                 width: "100%",
                                 padding: "15px",
@@ -200,7 +171,7 @@ export default function Login() {
                                 transition: "border-color 0.3s ease",
                                 boxSizing: "border-box"
                             }}
-                            onFocus={(e) => e.target.style.borderColor = "#667eea"}
+                            onFocus={(e) => e.target.style.borderColor = "#f5576c"}
                             onBlur={(e) => e.target.style.borderColor = "#e9ecef"}
                         />
                     </div>
@@ -211,38 +182,37 @@ export default function Login() {
                         style={{
                             width: "100%",
                             padding: "15px",
-                            backgroundColor: isLoading ? "#506668ff" : "linear-gradient(135deg, #667eea, #764ba2)",
-                            color: "#7a4747",
+                            background: isLoading ? "#95a5a6" : "linear-gradient(135deg, #f093fb, #f5576c)",
+                            color: "white",
                             border: "none",
                             borderRadius: "10px",
                             fontSize: "1.1rem",
                             fontWeight: "bold",
                             cursor: isLoading ? "not-allowed" : "pointer",
                             transition: "all 0.3s ease",
-                            boxShadow: "0 5px 15px rgba(102, 126, 234, 0.3)"
+                            boxShadow: "0 5px 15px rgba(245, 87, 108, 0.3)"
                         }}
                         onMouseEnter={(e) => {
                             if (!isLoading) {
                                 e.target.style.transform = "translateY(-2px)";
-                                e.target.style.boxShadow = "0 8px 20px rgba(102, 126, 234, 0.4)";
+                                e.target.style.boxShadow = "0 8px 20px rgba(245, 87, 108, 0.4)";
                             }
                         }}
                         onMouseLeave={(e) => {
                             if (!isLoading) {
                                 e.target.style.transform = "translateY(0)";
-                                e.target.style.boxShadow = "0 5px 15px rgba(102, 126, 234, 0.3)";
+                                e.target.style.boxShadow = "0 5px 15px rgba(245, 87, 108, 0.3)";
                             }
                         }}
                     >
                         {isLoading ? (
                             <span>🔄 Logging in...</span>
                         ) : (
-                            <span> Login to Exam</span>
+                            <span>🚀 Access Dashboard</span>
                         )}
                     </button>
                 </form>
 
-                {/* Footer */}
                 <div style={{
                     textAlign: "center",
                     marginTop: "30px",
@@ -252,39 +222,22 @@ export default function Login() {
                     <p style={{
                         color: "#7f8c8d",
                         fontSize: "0.9rem",
-                        margin: "0 0 15px 0"
+                        margin: "0 0 10px 0"
                     }}>
-                        🔐 Secure AI-powered proctoring system
+                        🔐 Secure teacher authentication
                     </p>
                     <button
-                        onClick={() => navigate('/teacher/login')}
+                        onClick={() => navigate('/')}
                         style={{
-                            padding: "12px 24px",
-                            backgroundColor: "transparent",
-                            color: "#667eea",
-                            border: "2px solid #667eea",
-                            borderRadius: "8px",
-                            fontSize: "0.95rem",
-                            fontWeight: "600",
+                            background: "none",
+                            border: "none",
+                            color: "#f5576c",
                             cursor: "pointer",
-                            transition: "all 0.3s ease",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "8px"
-                        }}
-                        onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = "#667eea";
-                            e.target.style.color = "white";
-                            e.target.style.transform = "translateY(-2px)";
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = "transparent";
-                            e.target.style.color = "#667eea";
-                            e.target.style.transform = "translateY(0)";
+                            fontSize: "0.9rem",
+                            textDecoration: "underline"
                         }}
                     >
-                        <span>👨‍🏫</span>
-                        Teacher/Proctor Login
+                        ← Back to Student Login
                     </button>
                 </div>
             </div>

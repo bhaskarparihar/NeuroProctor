@@ -63,5 +63,13 @@ temp/
 *.o
 *.a
 
+# Model weights (downloaded on first run)
+*.pt
+*.pth
+*.onnx
+*.pb
+*.h5
+*.hdf5
+
 # OS X Icon and resource forks
 Icon?
