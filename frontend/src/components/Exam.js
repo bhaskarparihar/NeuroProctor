@@ -124,6 +124,8 @@ export default function Exam() {
   const [permissionError, setPermissionError] = useState("");
   const [keyboardWarning, setKeyboardWarning] = useState("");
   const keyboardWarningTimeoutRef = useRef(null);
+  const [faceMismatchAlert, setFaceMismatchAlert] = useState("");
+  const faceMismatchTimeoutRef = useRef(null);
 
   const rollNumber = localStorage.getItem("rollNumber");
   const examId = "exam_2025_ai"; // You can make this dynamic
@@ -137,6 +139,17 @@ export default function Exam() {
     keyboardWarningTimeoutRef.current = setTimeout(() => {
       setKeyboardWarning("");
     }, 3000);
+  }, []);
+
+  // Show face mismatch alert with auto-dismiss
+  const showFaceMismatchAlert = useCallback((message) => {
+    setFaceMismatchAlert(message);
+    if (faceMismatchTimeoutRef.current) {
+      clearTimeout(faceMismatchTimeoutRef.current);
+    }
+    faceMismatchTimeoutRef.current = setTimeout(() => {
+      setFaceMismatchAlert("");
+    }, 5000); // Show for 5 seconds
   }, []);
 
   // Memoized handleSubmit to avoid useEffect warning
@@ -279,6 +292,9 @@ export default function Exam() {
       if (keyboardWarningTimeoutRef.current) {
         clearTimeout(keyboardWarningTimeoutRef.current);
       }
+      if (faceMismatchTimeoutRef.current) {
+        clearTimeout(faceMismatchTimeoutRef.current);
+      }
     };
   }, [started, submitted, rollNumber, examId, handleSubmit, showKeyboardWarning]);
 
@@ -314,17 +330,50 @@ export default function Exam() {
       const data = await res.json();
 
       if (data.status === "mismatch") {
-        // Add a warning first instead of immediately submitting
-        const shouldSubmit = window.confirm(
-          "⚠️ Face mismatch detected! This might be due to lighting or angle changes. " +
-          "Please ensure you are the same person who registered. " +
-          "Click OK to submit the exam, or Cancel to continue."
-        );
-        if (shouldSubmit) {
-          handleSubmit();
-        }
+        // Send alert to dashboard instead of terminating exam
+        const alertData = {
+          student_id: rollNumber,
+          exam_id: examId,
+          direction: "ALERT: Face Mismatch Detected",
+          time: new Date().toLocaleTimeString(),
+          details: {
+            type: "face_mismatch",
+            confidence: data.confidence,
+            message: "Face verification failed - possible impersonation"
+          }
+        };
+        
+        fetch("http://localhost:5000/log-alert", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(alertData)
+        }).catch(err => console.error("Failed to log face mismatch alert:", err));
+        
+        // Show alert to user
+        showFaceMismatchAlert("⚠️ ALERT: Face mismatch detected! Please ensure you are clearly visible.");
+        console.warn("⚠️ Face mismatch detected - Alert sent to dashboard");
       } else if (data.status === "multiple_faces") {
-        alert("Multiple faces detected! Please ensure only you are visible.");
+        // Send alert for multiple faces
+        const alertData = {
+          student_id: rollNumber,
+          exam_id: examId,
+          direction: "ALERT: Multiple Faces Detected",
+          time: new Date().toLocaleTimeString(),
+          details: {
+            type: "multiple_faces",
+            message: "More than one person detected in frame"
+          }
+        };
+        
+        fetch("http://localhost:5000/log-alert", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(alertData)
+        }).catch(err => console.error("Failed to log multiple faces alert:", err));
+        
+        // Show alert to user
+        showFaceMismatchAlert("⚠️ ALERT: Multiple faces detected! Ensure only you are visible.");
+        console.warn("⚠️ Multiple faces detected - Alert sent to dashboard");
       } else if (data.status === "no_face") {
         // Don't submit for no face detection, just warn
         console.log("No face detected in current frame");
@@ -333,7 +382,7 @@ export default function Exam() {
       console.error("Face verification error:", error);
       // Don't submit on network errors
     }
-  }, [rollNumber, handleSubmit]);
+  }, [rollNumber, examId, showFaceMismatchAlert]);
 
   const detectObjectDuringExam = useCallback(async (dataUrl) => {
     try {
@@ -681,6 +730,30 @@ export default function Exam() {
         </div>
       )}
 
+      {/* Face Mismatch Alert */}
+      {faceMismatchAlert && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10000,
+          backgroundColor: '#dc3545',
+          color: 'white',
+          padding: '15px 30px',
+          borderRadius: '10px',
+          boxShadow: '0 5px 20px rgba(220, 53, 69, 0.5)',
+          fontSize: '1.1rem',
+          fontWeight: 'bold',
+          textAlign: 'center',
+          minWidth: '400px',
+          animation: 'slideDown 0.3s ease',
+          border: '2px solid #fff'
+        }}>
+          {faceMismatchAlert}
+        </div>
+      )}
+
       {/* Header Warning - fixed and high z-index so it remains visible (including in fullscreen) */}
       <div style={{
         position: 'fixed',
@@ -750,7 +823,11 @@ export default function Exam() {
             )}
             
             {registerError && (
-              <div className="register-error">⚠️ {registerError}</div>
+              <div className="register-error" style={{ 
+                backgroundColor: '#dc3545',
+                color: 'white',
+                fontWeight: '700'
+              }}>⚠️ {registerError}</div>
             )}
             
             <button

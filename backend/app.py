@@ -93,7 +93,14 @@ def init_face_recognizer():
     """Initialize or load face recognizer"""
     global face_recognizer, face_labels, label_counter
     try:
-        face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+        # Use LBPH with improved parameters for better accuracy
+        face_recognizer = cv2.face.LBPHFaceRecognizer_create(
+            radius=2,        # Increased from default 1 for more spatial information
+            neighbors=8,     # Default value, good for most cases
+            grid_x=8,        # Default value
+            grid_y=8,        # Default value
+            threshold=100.0  # Increased threshold for stricter matching
+        )
         database = get_db_connection()
         if database is not None:
             # Try to load existing model from MongoDB
@@ -113,7 +120,13 @@ def init_face_recognizer():
                 print("ℹ No existing face recognition model found - will train on first registration")
     except Exception as e:
         print(f"Warning: Failed to initialize face recognizer: {e}")
-        face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+        face_recognizer = cv2.face.LBPHFaceRecognizer_create(
+            radius=2,
+            neighbors=8,
+            grid_x=8,
+            grid_y=8,
+            threshold=100.0
+        )
 
 def init_database():
     """Simple database initialization - always return True for now"""
@@ -353,7 +366,7 @@ def detect_head():
     h, w = frame.shape[:2]
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     results = face_mesh.process(rgb)
-    direction, yaw, pitch, roll = "No face detected", 0, 0, 0
+    direction, yaw, pitch, roll = "ALERT: No face detected", 0, 0, 0
 
     if results.multi_face_landmarks:
         face_landmarks = results.multi_face_landmarks[0]
@@ -398,6 +411,62 @@ except Exception as e:
     mp_face_detection = None
     face_detection = None
 
+def preprocess_face_image(gray_face, target_size=(200, 200)):
+    """
+    Preprocess face image for better recognition accuracy
+    - Resize to consistent size
+    - Apply histogram equalization for lighting normalization
+    - Apply Gaussian blur to reduce noise
+    """
+    # Resize to target size
+    resized = cv2.resize(gray_face, target_size)
+    
+    # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    # This normalizes lighting conditions and enhances local contrast
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(resized)
+    
+    # Apply slight Gaussian blur to reduce noise
+    denoised = cv2.GaussianBlur(enhanced, (3, 3), 0)
+    
+    return denoised
+
+def extract_face_roi(frame, use_multiple_detections=True):
+    """
+    Extract face ROI with improved accuracy using multiple detection methods
+    Returns: (face_roi, success_flag)
+    """
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    
+    # Method 1: Haar Cascade (fast and reliable)
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    face_rects = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,  # More granular search (reduced from 1.3)
+        minNeighbors=5,   # More strict detection
+        minSize=(80, 80)  # Minimum face size
+    )
+    
+    if len(face_rects) > 0:
+        # Get largest face
+        (x, y, w, h) = max(face_rects, key=lambda r: r[2] * r[3])
+        
+        # Add padding to include more context (10% padding)
+        padding = int(w * 0.1)
+        x = max(0, x - padding)
+        y = max(0, y - padding)
+        w = min(gray.shape[1] - x, w + 2 * padding)
+        h = min(gray.shape[0] - y, h + 2 * padding)
+        
+        face_roi = gray[y:y+h, x:x+w]
+        
+        # Preprocess the face
+        processed_face = preprocess_face_image(face_roi)
+        
+        return processed_face, True
+    
+    return None, False
+
 @app.route('/register-face', methods=['POST'])
 def register_face():
     if face_detection is None:
@@ -412,13 +481,32 @@ def register_face():
     frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
     if frame is None:
         return jsonify({'status': 'no_face'})
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    
+    # Check image quality
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    brightness = np.mean(gray)
+    if brightness < 40:
+        return jsonify({'status': 'poor_quality', 'message': 'Image too dark'})
+    elif brightness > 220:
+        return jsonify({'status': 'poor_quality', 'message': 'Image too bright'})
+    
+    # Check for blur using Laplacian variance
+    laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+    if laplacian_var < 100:
+        return jsonify({'status': 'poor_quality', 'message': 'Image too blurry'})
+    
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     if rgb is None or rgb.size == 0:
         return jsonify({'status': 'no_face'})
+    
     results = face_detection.process(rgb)
     if results.detections:
         if len(results.detections) == 1:
+            # Extract and preprocess face
+            face_roi, success = extract_face_roi(frame)
+            if not success or face_roi is None:
+                return jsonify({'status': 'no_face'})
+            
             registered_faces.add(roll_number)
             
             # Assign label ID for this student
@@ -439,6 +527,8 @@ def register_face():
                             'exam_id': exam_id,
                             'image_data': Binary(encoded_image.tobytes()),
                             'label_id': label_id,
+                            'brightness': float(brightness),
+                            'sharpness': float(laplacian_var),
                             'updated_at': datetime.now()
                         }
                         database.registered_faces.update_one(
@@ -467,20 +557,14 @@ def retrain_face_recognizer(database):
         faces_list = []
         labels_list = []
         
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        
         for face_doc in faces_cursor:
             image_bytes = face_doc['image_data']
             nparr = np.frombuffer(image_bytes, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
-            # Detect face region
-            face_rects = face_cascade.detectMultiScale(gray, 1.3, 5)
-            if len(face_rects) > 0:
-                (x, y, w, h) = face_rects[0]
-                face_roi = gray[y:y+h, x:x+w]
-                face_roi = cv2.resize(face_roi, (200, 200))
+            # Use improved face extraction
+            face_roi, success = extract_face_roi(img)
+            if success and face_roi is not None:
                 faces_list.append(face_roi)
                 labels_list.append(face_doc['label_id'])
         
@@ -518,7 +602,6 @@ def verify_face():
     npimg = np.frombuffer(file.read(), np.uint8)
     frame = cv2.imdecode(npimg, cv2.IMREAD_COLOR)
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     
     # First check with MediaPipe for face detection
     results = face_detection.process(rgb)
@@ -527,25 +610,23 @@ def verify_face():
     elif len(results.detections) > 1:
         return jsonify({'status': 'multiple_faces'})
     else:
-        # Use OpenCV Haar Cascade for face ROI extraction
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        face_rects = face_cascade.detectMultiScale(gray, 1.3, 5)
+        # Extract and preprocess face ROI
+        face_roi, success = extract_face_roi(frame)
         
-        if len(face_rects) == 0:
+        if not success or face_roi is None:
             return jsonify({'status': 'no_face'})
-        
-        # Get largest face
-        (x, y, w, h) = max(face_rects, key=lambda r: r[2] * r[3])
-        face_roi = gray[y:y+h, x:x+w]
-        face_roi = cv2.resize(face_roi, (200, 200))
         
         # Recognize face using LBPH
         if roll_number in face_labels:
             expected_label = face_labels[roll_number]
             predicted_label, confidence = face_recognizer.predict(face_roi)
             
-            # Lower confidence = better match (distance metric)
-            if predicted_label == expected_label and confidence < 70:
+            # Adaptive threshold based on confidence
+            # Lower confidence = better match (LBPH uses distance metric)
+            # Threshold adjusted: 50 (very strict) to 80 (moderate)
+            CONFIDENCE_THRESHOLD = 60  # More lenient than before
+            
+            if predicted_label == expected_label and confidence < CONFIDENCE_THRESHOLD:
                 return jsonify({
                     'status': 'match',
                     'confidence': float(confidence),
@@ -554,11 +635,15 @@ def verify_face():
             else:
                 # Find who was recognized
                 recognized_roll = next((k for k, v in face_labels.items() if v == predicted_label), 'unknown')
+                
+                # If confidence is very high (>100), it's likely a mismatch
+                # If confidence is borderline (60-80), might be lighting/angle issue
                 return jsonify({
                     'status': 'mismatch',
                     'confidence': float(confidence),
                     'expected': roll_number,
-                    'recognized_as': recognized_roll
+                    'recognized_as': recognized_roll,
+                    'severity': 'high' if confidence > 80 else 'medium'
                 })
         else:
             return jsonify({'status': 'not_registered', 'message': 'Student not registered for face recognition'})
