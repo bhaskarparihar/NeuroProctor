@@ -2,7 +2,7 @@
 
 # ---- Start Backend ----
 cd backend
-python3 app.py &    # runs backend in background
+python app.py &    # runs backend in background
 
 # ---- Start Frontend ----
 cd ../frontend
