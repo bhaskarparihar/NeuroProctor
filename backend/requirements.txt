@@ -11,6 +11,5 @@ pytest
 pytest-flask
 pytest-cov
 tensorflow
-mediapipe==0.10.18
 pymongo
 gunicorn
