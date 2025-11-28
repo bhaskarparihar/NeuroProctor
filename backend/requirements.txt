@@ -10,7 +10,7 @@ dnspython
 pytest
 pytest-flask
 pytest-cov
-tensorflow==2.18.0
+tensorflow
 mediapipe==0.10.18
 pymongo
 gunicorn
