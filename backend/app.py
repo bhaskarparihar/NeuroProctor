@@ -2,7 +2,6 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import cv2
 import numpy as np
-import mediapipe as mp
 import os
 from datetime import datetime
 import requests
@@ -16,6 +15,16 @@ import json
 from collections import deque
 import secrets
 from datetime import timedelta
+
+import subprocess
+import sys
+
+try:
+    import mediapipe as mp
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "mediapipe"])
+    import mediapipe as mp
+
 
 app = Flask(__name__)
 CORS(app)
